@@ -58,9 +58,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: videosubfinder-cli-cpu-static-linux-x64
-          path: |
-            ./Build/Docker/cpu_static/out/videosubfinder-cli-cpu-static-linux-x64.tar.gz
-            ./Build/Docker/cpu_static/out/videosubfinder-cli-cpu-static-upx-linux-x64.tar.gz
+          path: ./Build/Docker/cpu_static/out/videosubfinder-cli-cpu-static-linux-x64.tar.gz
           if-no-files-found: error
           compression-level: 0
 
@@ -73,7 +71,6 @@ jobs:
           tag_name: "${{ env.release_version }}-ci"
           files: |
             ./Build/Docker/cpu_static/out/videosubfinder-cli-cpu-static-linux-x64.tar.gz
-            ./Build/Docker/cpu_static/out/videosubfinder-cli-cpu-static-upx-linux-x64.tar.gz
           body: "[Github Action](https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }})"
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
