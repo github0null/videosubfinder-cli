@@ -1,10 +1,11 @@
 # videosubfinder-cli
 
 ## Target hosts (Linux x64)
-Build scripts are tuned for:
+Build scripts / GitHub Actions are tuned for:
+- **Build OS**: **Debian 12** (Docker images used by CI)
 - **CPU**: Intel Xeon E5-2640 v4 class (Broadwell, AVX2, **no AVX-512**)
 - **GPU/CUDA**: CUDA **12.x** (e.g. Tesla T4 / sm_75)
-- **OS**: Debian 12 / Ubuntu 22.04+ without changing the host packages
+- **Runtime OS**: Debian 12 (no host package changes required for CPU tarballs)
 
 Always run via `./VideoSubFinderCli.run` (sets a safe C locale for fully-static builds).
 

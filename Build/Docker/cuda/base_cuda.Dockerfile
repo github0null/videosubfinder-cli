@@ -1,7 +1,8 @@
-# CUDA 12 devel image. Tesla T4 = sm_75 (included in CUDAKernels arches).
-FROM nvidia/cuda:12.3.2-devel-ubuntu22.04 as builder
+# Build on Debian 12 with CUDA 12 (Tesla T4 = sm_75).
+FROM debian:12-slim AS builder
 
 ARG USE_GUI=0
+ARG CUDA_TOOLKIT_VERSION=12-4
 
 # Target Xeon E5-2640 v4 (Broadwell): AVX2 yes, AVX-512 no.
 ENV CFLAGS="-O3 -march=broadwell -mtune=broadwell" \
@@ -9,17 +10,26 @@ ENV CFLAGS="-O3 -march=broadwell -mtune=broadwell" \
     DEBIAN_FRONTEND=noninteractive \
     CUDA_TOOLKIT_PATH=/usr/local/cuda
 
-# Allow ubuntu to cache package downloads
-RUN rm -f /etc/apt/apt.conf.d/docker-clean
-RUN --mount=type=cache,target=/var/cache/apt \
-    apt-get update
-RUN --mount=type=cache,target=/var/cache/apt \
-    apt-get install -y git cmake wget libtbb-dev \
-      libavcodec-dev libavformat-dev libswscale-dev libavfilter-dev \
-      libavutil-dev libx264-dev build-essential pkg-config \
-    && if [ "$USE_GUI" = "1" ]; then apt-get install -y \
+RUN rm -f /etc/apt/apt.conf.d/docker-clean \
+    && apt-get update \
+    && apt-get install -y --no-install-recommends \
+        ca-certificates curl wget gnupg2 \
+    && wget -q https://developer.download.nvidia.com/compute/cuda/repos/debian12/x86_64/cuda-keyring_1.1-1_all.deb \
+    && dpkg -i cuda-keyring_1.1-1_all.deb \
+    && rm -f cuda-keyring_1.1-1_all.deb \
+    && apt-get update \
+    && apt-get install -y --no-install-recommends \
+        git cmake build-essential pkg-config \
+        libtbb-dev \
+        libavcodec-dev libavformat-dev libswscale-dev libavfilter-dev \
+        libavutil-dev libx264-dev \
+        cuda-toolkit-${CUDA_TOOLKIT_VERSION} \
+        libnpp-dev-${CUDA_TOOLKIT_VERSION} \
+    && if [ "$USE_GUI" = "1" ]; then apt-get install -y --no-install-recommends \
         libgtk-3-dev ffmpeg \
-      ; fi
+      ; fi \
+    && ln -sfn /usr/local/cuda-* /usr/local/cuda \
+    && rm -rf /var/lib/apt/lists/*
 
 RUN mkdir -p /tmp/work \
     && cd /tmp/work \
@@ -32,7 +42,7 @@ RUN mkdir -p /tmp/work \
     && make install \
     && rm -rf /tmp/work/wxWidgets
 
-# OpenCV without embedding AVX-512 as baseline; CUDA left to VideoSubFinder kernels.
+# OpenCV: SSE4.2 baseline + dispatch up to AVX2 (no AVX-512).
 RUN cd /tmp/work \
     && git clone https://github.com/opencv/opencv.git -b 4.8.0 --depth=1 \
     && cd opencv \
@@ -48,6 +58,6 @@ RUN cd /tmp/work \
         -DCMAKE_C_FLAGS="${CFLAGS}" \
         -DCMAKE_CXX_FLAGS="${CXXFLAGS}" \
         .. \
-    && cmake --build . --config Release -j $(nproc) \
+    && cmake --build . --config Release -j "$(nproc)" \
     && make install \
     && rm -rf /tmp/work/opencv

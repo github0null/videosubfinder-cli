@@ -2,10 +2,16 @@
 set -euo pipefail
 cd "${0%/*}"
 
-if [[ "${GITHUB_ACTION:-${GITHUB_ACTIONS:-}}" ]]; then
-  docker buildx build --load --cache-from type=gha --cache-to type=gha,mode=max \
+export DOCKER_BUILDKIT=1
+
+if [[ "${GITHUB_ACTIONS:-${GITHUB_ACTION:-}}" ]]; then
+  docker buildx build --load \
+    --cache-from type=gha,scope=cpu-static-base \
+    --cache-to type=gha,mode=max,scope=cpu-static-base \
     -t videosubfinder-build:base-cpu-static -f base.Dockerfile ../..
-  docker buildx build --load --cache-from type=gha --cache-to type=gha,mode=max \
+  docker buildx build --load \
+    --cache-from type=gha,scope=cpu-static-app \
+    --cache-to type=gha,mode=max,scope=cpu-static-app \
     --build-arg BASE_IMAGE=videosubfinder-build:base-cpu-static \
     -t videosubfinder-build:cpu-static -f build.Dockerfile ../../..
 else

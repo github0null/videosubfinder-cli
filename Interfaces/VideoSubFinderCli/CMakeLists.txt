@@ -61,8 +61,9 @@ else()
 
 	target_link_directories(VideoSubFinderCli  PUBLIC
 		"${wxWidgets_LIBRARY_DIRS}"
+		${CUDA_LINK_DIRS}
 	)
-			
+
 	target_link_libraries(VideoSubFinderCli PUBLIC
 		IPAlgorithms
 		OCVVideo

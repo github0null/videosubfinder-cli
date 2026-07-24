@@ -1,18 +1,18 @@
-FROM ubuntu:22.04 as builder
+FROM debian:12-slim AS builder
 
 # Target Xeon E5-2640 v4 (Broadwell): AVX2 yes, AVX-512 no.
 ENV CFLAGS="-O3 -march=broadwell -mtune=broadwell" \
     CXXFLAGS="-O3 -march=broadwell -mtune=broadwell" \
     DEBIAN_FRONTEND=noninteractive
 
-# Allow ubuntu to cache package downloads
-RUN rm -f /etc/apt/apt.conf.d/docker-clean
-RUN --mount=type=cache,target=/var/cache/apt,sharing=private \
-    apt-get update
-RUN --mount=type=cache,target=/var/cache/apt,sharing=private \
-    apt-get install -y git cmake wget libtbb-dev \
-      libavcodec-dev libavformat-dev libswscale-dev libavfilter-dev \
-      libavutil-dev libx264-dev build-essential pkg-config
+RUN rm -f /etc/apt/apt.conf.d/docker-clean \
+    && apt-get update \
+    && apt-get install -y --no-install-recommends \
+        ca-certificates git cmake wget build-essential pkg-config \
+        libtbb-dev \
+        libavcodec-dev libavformat-dev libswscale-dev libavfilter-dev \
+        libavutil-dev libx264-dev \
+    && rm -rf /var/lib/apt/lists/*
 
 RUN mkdir -p /tmp/work \
     && cd /tmp/work \
@@ -23,11 +23,11 @@ RUN mkdir -p /tmp/work \
     && mkdir buildgtk \
     && cd buildgtk/ \
     && ../configure --disable-gui \
-    && make -j$(nproc) \
+    && make -j"$(nproc)" \
     && make install \
     && rm -rf /tmp/work/wxWidgets
 
-# OpenCV: SSE4.2 baseline + dispatch up to AVX2 (no AVX-512 baseline/dispatch).
+# OpenCV: SSE4.2 baseline + dispatch up to AVX2 (no AVX-512).
 RUN cd /tmp/work \
     && git clone https://github.com/opencv/opencv.git -b 4.8.0 --depth=1 \
     && cd opencv \
@@ -43,6 +43,6 @@ RUN cd /tmp/work \
         -DCMAKE_C_FLAGS="${CFLAGS}" \
         -DCMAKE_CXX_FLAGS="${CXXFLAGS}" \
         .. \
-    && cmake --build . --config Release -j $(nproc) \
+    && cmake --build . --config Release -j "$(nproc)" \
     && make install \
     && rm -rf /tmp/work/opencv
