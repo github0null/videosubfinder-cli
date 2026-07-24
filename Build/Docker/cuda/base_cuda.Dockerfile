@@ -8,7 +8,9 @@ ARG CUDA_TOOLKIT_VERSION=12-4
 ENV CFLAGS="-O3 -march=broadwell -mtune=broadwell" \
     CXXFLAGS="-O3 -march=broadwell -mtune=broadwell" \
     DEBIAN_FRONTEND=noninteractive \
-    CUDA_TOOLKIT_PATH=/usr/local/cuda
+    CUDA_TOOLKIT_PATH=/usr/local/cuda \
+    PATH=/usr/local/cuda/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin \
+    LD_LIBRARY_PATH=/usr/local/cuda/lib64
 
 RUN rm -f /etc/apt/apt.conf.d/docker-clean \
     && apt-get update \
@@ -23,12 +25,19 @@ RUN rm -f /etc/apt/apt.conf.d/docker-clean \
         libtbb-dev \
         libavcodec-dev libavformat-dev libswscale-dev libavfilter-dev \
         libavutil-dev libx264-dev \
-        cuda-toolkit-${CUDA_TOOLKIT_VERSION} \
+        cuda-nvcc-${CUDA_TOOLKIT_VERSION} \
+        cuda-cudart-dev-${CUDA_TOOLKIT_VERSION} \
+        cuda-driver-dev-${CUDA_TOOLKIT_VERSION} \
+        cuda-cccl-${CUDA_TOOLKIT_VERSION} \
         libnpp-dev-${CUDA_TOOLKIT_VERSION} \
     && if [ "$USE_GUI" = "1" ]; then apt-get install -y --no-install-recommends \
         libgtk-3-dev ffmpeg \
       ; fi \
-    && ln -sfn /usr/local/cuda-* /usr/local/cuda \
+    && CUDA_DIR="$(ls -d /usr/local/cuda-[0-9]* 2>/dev/null | sort -V | tail -1)" \
+    && test -n "$CUDA_DIR" \
+    && rm -rf /usr/local/cuda \
+    && ln -s "$CUDA_DIR" /usr/local/cuda \
+    && ls -la /usr/local/cuda/bin/nvcc \
     && rm -rf /var/lib/apt/lists/*
 
 RUN mkdir -p /tmp/work \

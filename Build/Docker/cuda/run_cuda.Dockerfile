@@ -23,7 +23,10 @@ RUN rm -f /etc/apt/apt.conf.d/docker-clean \
     && apt-get install -y --no-install-recommends \
         cuda-cudart-${CUDA_TOOLKIT_VERSION} \
         libnpp-${CUDA_TOOLKIT_VERSION} \
-    && ln -sfn /usr/local/cuda-* /usr/local/cuda \
+    && CUDA_DIR="$(ls -d /usr/local/cuda-[0-9]* 2>/dev/null | sort -V | tail -1)" \
+    && test -n "$CUDA_DIR" \
+    && rm -rf /usr/local/cuda \
+    && ln -s "$CUDA_DIR" /usr/local/cuda \
     && rm -rf /var/lib/apt/lists/*
 
 # Expect the release tarball next to this Dockerfile (copied by run_cuda.sh).
