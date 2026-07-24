@@ -2,18 +2,15 @@
 set -euo pipefail
 cd "${0%/*}"
 
-# Always rebuild the local base image so CPU flags / OpenCV options apply.
-# Pre-published eritpchy/* images are intentionally not required.
 export DOCKER_BUILDKIT=1
 
+# Always rebuild the local base image so CPU flags / OpenCV options apply.
 if [[ "${GITHUB_ACTIONS:-${GITHUB_ACTION:-}}" ]]; then
   docker buildx build --load \
     --cache-from type=gha,scope=cpu-base \
     --cache-to type=gha,mode=max,scope=cpu-base \
     -t videosubfinder-build:base -f base.Dockerfile ../..
-  docker buildx build --load \
-    --cache-from type=gha,scope=cpu-app \
-    --cache-to type=gha,mode=max,scope=cpu-app \
+  docker build \
     --build-arg BASE_IMAGE=videosubfinder-build:base \
     -t videosubfinder-build:cpu -f build.Dockerfile ../../..
 else
