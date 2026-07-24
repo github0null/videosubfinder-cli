@@ -2,25 +2,26 @@
 set -euo pipefail
 cd "${0%/*}"
 
-export DOCKER_BUILDKIT=1
-
-# Always rebuild the local base image so CPU flags / OpenCV options apply.
-if [[ "${GITHUB_ACTIONS:-${GITHUB_ACTION:-}}" ]]; then
-  docker buildx build --load \
-    --cache-from type=gha,scope=cpu-base \
-    --cache-to type=gha,mode=max,scope=cpu-base \
-    -t videosubfinder-build:base -f base.Dockerfile ../..
-  docker build \
-    --build-arg BASE_IMAGE=videosubfinder-build:base \
-    -t videosubfinder-build:cpu -f build.Dockerfile ../../..
-else
-  docker build -t videosubfinder-build:base -f base.Dockerfile ../..
-  docker build --build-arg BASE_IMAGE=videosubfinder-build:base \
-    -t videosubfinder-build:cpu -f build.Dockerfile ../../..
+# Prefer docker-engine builder so local base tags resolve for FROM.
+if command -v docker >/dev/null 2>&1; then
+  docker buildx use default >/dev/null 2>&1 || true
 fi
 
+echo "==> Building CPU base image"
+docker build -t videosubfinder-build:base -f base.Dockerfile ../..
+
+echo "==> Building CPU app image"
+docker build \
+  --build-arg BASE_IMAGE=videosubfinder-build:base \
+  -t videosubfinder-build:cpu \
+  -f build.Dockerfile \
+  ../../..
+
 mkdir -p out
+echo "==> Packaging tarball"
 docker run --rm -v "$PWD/out:$PWD/out" videosubfinder-build:cpu \
   bash -c "cd /tmp/work/ && tar cvzf $PWD/out/videosubfinder-cli-cpu-linux-x64.tar.gz \
     VideoSubFinderCli VideoSubFinderCli.run settings \
     \$(ls -1 | grep -E '\\.so(\\..*)?$' || true)"
+
+ls -lh out/videosubfinder-cli-cpu-linux-x64.tar.gz

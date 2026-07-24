@@ -38,11 +38,11 @@ jobs:
           docker-images: true
           swap-storage: true
 
+      # docker driver (not docker-container) so local tags resolve for FROM.
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
         with:
-          driver: docker-container
-          buildkitd-flags: --allow-insecure-entitlement security.insecure --allow-insecure-entitlement network.host
+          driver: docker
 
       - name: Assign release version
         run: |
@@ -51,8 +51,6 @@ jobs:
           echo "Building release_version=${release_version}"
 
       - name: Build cuda (Debian 12 + CUDA 12)
-        env:
-          GITHUB_ACTIONS: "true"
         run: bash ./Build/Docker/cuda/build_cuda.sh
 
       - name: Upload artifact
