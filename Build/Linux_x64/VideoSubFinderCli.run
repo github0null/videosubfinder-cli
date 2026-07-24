@@ -1,5 +1,18 @@
 #!/bin/sh
-cd ${0%/*}
-export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$PWD:/lib64
+cd "${0%/*}" || exit 1
+
+# Fully-static glibc builds dlopen host gconv modules (e.g. UTF-32.so).
+# On newer hosts (Debian 12 / glibc 2.36+) those modules pull in an
+# incompatible libc and crash with SIGSEGV during startup. Force the C
+# locale so glibc uses built-in converters and never dlopens gconv.
+export LC_ALL=C
+export LANG=C
+export LANGUAGE=C
+export GCONV_PATH=/nonexistent
+export LOCPATH=/nonexistent
+
+# Prefer libraries shipped next to this launcher (dynamic builds).
+export LD_LIBRARY_PATH="${PWD}:${LD_LIBRARY_PATH}"
+
 chmod +x ./VideoSubFinderCli
-./VideoSubFinderCli "$@"
+exec ./VideoSubFinderCli "$@"

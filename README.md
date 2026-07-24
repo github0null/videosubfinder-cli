@@ -1,36 +1,45 @@
 # videosubfinder-cli
 
+## Target hosts (Linux x64)
+Build scripts are tuned for:
+- **CPU**: Intel Xeon E5-2640 v4 class (Broadwell, AVX2, **no AVX-512**)
+- **GPU/CUDA**: CUDA **12.x** (e.g. Tesla T4 / sm_75)
+- **OS**: Debian 12 / Ubuntu 22.04+ without changing the host packages
+
+Always run via `./VideoSubFinderCli.run` (sets a safe C locale for fully-static builds).
+
 ## Install dependencies
 - macOS
 ```bash
   brew install wxwidgets@3.2 opencv@4 ffmpeg tbb
 ```
-- Ubuntu 20.04
+- Ubuntu / Debian (dynamic CPU package)
 
-    [Build/Docker/cuda/run_cuda.Dockerfile](Build/Docker/cuda/run_cuda.Dockerfile)
+  No extra packages required: the CPU tarball bundles OpenCV / wx / FFmpeg / TBB.
 
-NOTE: The static version does not require installation dependencies!
+- CUDA package
 
-## Build from sources
-- macOS
-    
-    [.github/workflows/build-darwin-x64.yml](.github/workflows/build-darwin-x64.yml)
+  Needs a host (or container) with **CUDA 12** libraries / NVIDIA driver. See
+  [Build/Docker/cuda/run_cuda.sh](Build/Docker/cuda/run_cuda.sh).
 
-
-- Ubuntu 20.04
-    
-    [Build/Docker/cpu/build.sh](Build/Docker/cpu/build.sh)
-
+NOTE: The static CPU package does not require installation dependencies.
 
 ## Build from sources
 - macOS
-    
+
     see [.github/workflows/build-darwin-x64.yml](.github/workflows/build-darwin-x64.yml)
 
+- Linux CPU (dynamic, Broadwell-compatible)
 
-- Ubuntu 20.04
-    
     see [Build/Docker/cpu/build.sh](Build/Docker/cpu/build.sh)
+
+- Linux CPU (fully static)
+
+    see [Build/Docker/cpu_static/build.sh](Build/Docker/cpu_static/build.sh)
+
+- Linux CUDA 12
+
+    see [Build/Docker/cuda/build_cuda.sh](Build/Docker/cuda/build_cuda.sh)
 
 
 ## Usage

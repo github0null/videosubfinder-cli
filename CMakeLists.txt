@@ -48,6 +48,13 @@ else()
 endif(WIN32)
 
 if(USE_CUDA)
+	# Prefer CUDA 12 toolkits; fall back to the classic env override used by Docker builds.
+	if(NOT DEFINED ENV{CUDA_TOOLKIT_PATH} OR "$ENV{CUDA_TOOLKIT_PATH}" STREQUAL "")
+		if(EXISTS "/usr/local/cuda")
+			set(ENV{CUDA_TOOLKIT_PATH} "/usr/local/cuda")
+		endif()
+	endif()
+	# Keep PTX/SASS broad enough for Tesla T4 (sm_75) and newer cards on CUDA 12.
 	set(CMAKE_CUDA_FLAGS "-arch=all")
 	add_definitions(-DUSE_CUDA)
 	set(CUDAKernels_INCLUDE_DIRS "../CUDAKernels")

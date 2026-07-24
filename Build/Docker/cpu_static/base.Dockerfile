@@ -1,15 +1,21 @@
-FROM ubuntu:20.04 as builder
+FROM ubuntu:22.04 as builder
+
+ARG USE_GUI=0
+
+# Target Xeon E5-2640 v4 (Broadwell): AVX2 yes, AVX-512 no.
+ENV CFLAGS="-O3 -march=broadwell -mtune=broadwell" \
+    CXXFLAGS="-O3 -march=broadwell -mtune=broadwell" \
+    DEBIAN_FRONTEND=noninteractive \
+    PATH="/usr/lib/ccache:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/tmp/work/ffmpeg-build-script/workspace/bin"
+
 # Allow ubuntu to cache package downloads
 RUN rm -f /etc/apt/apt.conf.d/docker-clean
-ARG USE_GUI=0
 RUN --mount=type=cache,target=/var/cache/apt,sharing=private \
-    apt update
+    apt-get update
 RUN --mount=type=cache,target=/var/cache/apt,sharing=private \
-    DEBIAN_FRONTEND=noninteractive apt install -y ccache build-essential curl git
-ENV PATH="/usr/lib/ccache:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/tmp/work/ffmpeg-build-script/workspace/bin"
+    apt-get install -y ccache build-essential curl git cmake pkg-config
+
 RUN mkdir -p /tmp/work
-RUN --mount=type=cache,target=/var/cache/apt,sharing=private \
-    DEBIAN_FRONTEND=noninteractive apt install -y cmake
 RUN --mount=type=cache,target=/root/.ccache,sharing=private \
     cd /tmp/work/ \
     && git clone https://github.com/markus-perl/ffmpeg-build-script.git -b v1.46 --depth=1 \
@@ -18,8 +24,11 @@ RUN --mount=type=cache,target=/root/.ccache,sharing=private \
     && bash -c '([[ "aarch64" == "$(uname -m)" ]] && sed -i "s|https://github.com/georgmartius/vid.stab/archive/v1.1.0.tar.gz|https://github.com/meneguzzi/vid.stab/archive/refs/heads/sse2neon.tar.gz|g" ./build-ffmpeg || true)' \
     && sed -i "s|netactuate|onboardcloud|g" ./build-ffmpeg \
     && sed -i "s|netcologne|onboardcloud|g" ./build-ffmpeg \
+    # Pin ffmpeg assembly to Broadwell-class CPUs (no AVX-512 host detection).
+    && sed -i 's/--enable-static/--enable-static --disable-avx512 --disable-avx512icl/g' ./build-ffmpeg \
     && AUTOINSTALL="yes" ./build-ffmpeg --enable-gpl-and-non-free --build --full-static \
     && true
+
 RUN --mount=type=cache,target=/root/.ccache,sharing=private \
     cd /tmp/work \
     && git clone https://github.com/wxWidgets/wxWidgets.git -b v3.2.2.1 --depth=1 --recurse-submodules -j8 \
@@ -30,21 +39,28 @@ RUN --mount=type=cache,target=/root/.ccache,sharing=private \
     && make -j$(nproc) \
     && make install \
     && rm -rf /tmp/work/wxWidgets \
-    && true 
+    && true
+
 RUN --mount=type=cache,target=/root/.ccache,sharing=private \
     cd /tmp/work \
     && git clone https://github.com/opencv/opencv.git -b 4.8.0 --depth=1 \
     && cd opencv \
     && mkdir -p build \
     && cd build \
-    && cmake -DCMAKE_BUILD_TYPE=Release  -DWITH_GTK=OFF -DWITH_FFMPEG=ON -D CMAKE_BUILD_TYPE=RELEASE \
-    -D CMAKE_INSTALL_PREFIX=/usr/local   -D WITH_TBB=ON -D WITH_V4L=ON -D WITH_OPENGL=ON \
-    -D WITH_CUBLAS=ON -DWITH_QT=OFF -DCUDA_NVCC_FLAGS="-D_FORCE_INLINES"  -DBUILD_SHARED_LIBS=OFF .. \
+    && cmake -DCMAKE_BUILD_TYPE=Release -DWITH_GTK=OFF -DWITH_FFMPEG=ON \
+        -DCMAKE_INSTALL_PREFIX=/usr/local -DWITH_TBB=ON -DWITH_V4L=ON -DWITH_OPENGL=ON \
+        -DWITH_CUBLAS=OFF -DWITH_CUDA=OFF -DWITH_QT=OFF -DBUILD_SHARED_LIBS=OFF \
+        -DCPU_BASELINE=SSE4_2 \
+        -DCPU_DISPATCH="SSE4_1;SSE4_2;AVX;AVX2;FP16;FMA3" \
+        -DCMAKE_C_FLAGS="${CFLAGS}" \
+        -DCMAKE_CXX_FLAGS="${CXXFLAGS}" \
+        .. \
     && cmake --build . --config Release -j $(nproc) \
     && make install \
     && rm -rf /tmp/work/opencv \
     && true
-# OpenCV full staitc library
+
+# OpenCV full static library cmake references
 RUN grep -R -l "\.so" /usr/local/lib/cmake/opencv4/*.cmake | xargs -I{} sed -i 's/\.so/.a/g' {}
 
 RUN --mount=type=cache,target=/root/.ccache,sharing=private \
@@ -52,6 +68,7 @@ RUN --mount=type=cache,target=/root/.ccache,sharing=private \
     && git clone https://github.com/oneapi-src/oneTBB.git -b v2020.3.3 --depth=1 \
     && cd oneTBB \
     && make tbb_build_prefix=BUILDPREFIX extra_inc=big_iron.inc \
+        CXXFLAGS="${CXXFLAGS}" CFLAGS="${CFLAGS}" \
     && cp -f ./build/BUILDPREFIX_release/libtbb.a /usr/local/lib/ \
     && cp -f ./build/BUILDPREFIX_release/libtbbmalloc.a /usr/local/lib \
     && cp -rf ./include/tbb /usr/local/include/ \

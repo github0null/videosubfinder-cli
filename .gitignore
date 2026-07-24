@@ -7,7 +7,19 @@
 !*.hpp
 !*.h
 !*.cu
+!*.sh
+!*.run
+!*.md
+!*.txt
+!*.yml
+!*.yaml
+!*.cfg
 !.gitignore
+!.dockerignore
+!.gitmodules
+!CMakeLists.txt
+!Dockerfile
+!*.Dockerfile
 # Or directories
 !*/
 .idea
