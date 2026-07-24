@@ -1,3 +1,5 @@
 /.idea/**
 /linux_build/**
-/Build/Docker/**
+/Build/Docker/**/out/**
+/Build/Docker/**/*.tar.gz
+# Keep Build/Docker/common helpers available to Docker COPY.

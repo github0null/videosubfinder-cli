@@ -13,6 +13,8 @@ target_compile_features(CUDAKernels PUBLIC cxx_std_11)
 if (WIN32)
 	set_target_properties(CUDAKernels PROPERTIES CUDA_ARCHITECTURES all)
 else()
+	# CUDA 12 compatible SASS set. sm_75 = Tesla T4.
+	# Maxwell (5x) kept for older cards still supported by CUDA 12.x toolkits.
 	set_target_properties(CUDAKernels PROPERTIES CUDA_ARCHITECTURES "50;52;53;60;61;62;70;72;75;80;86;87;89;90")
 endif (WIN32)
 
