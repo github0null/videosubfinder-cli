@@ -15,7 +15,6 @@ RUN set -eux; \
     export CUDA_TOOLKIT_PATH="$CUDA_DIR"; \
     export LD_LIBRARY_PATH="${LD_LIBRARY_PATH:-}:$CUDA_DIR/lib64:${CUDA_DIR}/extras/CUPTI/lib64"; \
     export PATH="$PATH:$CUDA_DIR/bin"; \
-    # Ensure linker can find cudart/npp during the app build.
     if [ -e "$CUDA_DIR/lib64/libcudart.so" ]; then \
       ln -sfn "$CUDA_DIR/lib64/libcudart.so" /usr/lib/libcudart.so; \
     elif [ -e "$CUDA_DIR/targets/x86_64-linux/lib/libcudart.so" ]; then \
@@ -34,13 +33,15 @@ RUN set -eux; \
         -DCMAKE_EXE_LINKER_FLAGS="-Wl,-rpath,\$ORIGIN" \
         ..; \
     cmake --build . --config Release -j "$(nproc)"; \
-    cp ./Interfaces/VideoSubFinderCli/VideoSubFinderCli /tmp/work/VideoSubFinderCli.bin; \
-    rm -rf /tmp/work/videosubfinder-src
+    cp -f ./Interfaces/VideoSubFinderCli/VideoSubFinderCli /tmp/work/VideoSubFinderCli; \
+    rm -rf /tmp/work/videosubfinder-src; \
+    test -x /tmp/work/VideoSubFinderCli
 
 # Bundle app deps; leave libcudart/npp to the CUDA 12 host / nvidia container runtime.
-RUN bash /usr/local/bin/bundle_runtime_libs.sh /tmp/work /tmp/work/VideoSubFinderCli.bin \
+RUN set -eux; \
+    bash /usr/local/bin/bundle_runtime_libs.sh /tmp/work /tmp/work/VideoSubFinderCli \
       "/usr/local/lib/libwx_baseu-*.so.*" \
-      "/usr/local/lib/libopencv_*.so.*" \
-    && mv -f /tmp/work/VideoSubFinderCli.bin /tmp/work/VideoSubFinderCli \
-    && chmod +x /tmp/work/VideoSubFinderCli /tmp/work/VideoSubFinderCli.run \
-    && rm -f /tmp/work/libcudart.so* /tmp/work/libnpp*.so* /tmp/work/libcuda.so* || true
+      "/usr/local/lib/libopencv_*.so.*"; \
+    chmod +x /tmp/work/VideoSubFinderCli /tmp/work/VideoSubFinderCli.run; \
+    rm -f /tmp/work/libcudart.so* /tmp/work/libnpp*.so* /tmp/work/libcuda.so*; \
+    test -x /tmp/work/VideoSubFinderCli

@@ -12,7 +12,8 @@ RUN rm -f /etc/apt/apt.conf.d/docker-clean \
     && apt-get update \
     && apt-get install -y --no-install-recommends \
         ca-certificates ccache build-essential curl git cmake pkg-config \
-        nasm yasm \
+        nasm yasm gzip xz-utils unzip \
+        python3 \
     && rm -rf /var/lib/apt/lists/*
 
 RUN mkdir -p /tmp/work
@@ -22,8 +23,9 @@ RUN --mount=type=cache,target=/root/.ccache,sharing=private \
     && cd ffmpeg-build-script \
     && bash -c '([[ "aarch64" == "$(uname -m)" ]] && sed -i "s|https://github.com/videolan/x265/archive/Release_3.5.tar.gz|https://bitbucket.org/multicoreware/x265_git/get/931178347b3f73e40798fd5180209654536bbaa5.tar.gz|g" ./build-ffmpeg || true)' \
     && bash -c '([[ "aarch64" == "$(uname -m)" ]] && sed -i "s|https://github.com/georgmartius/vid.stab/archive/v1.1.0.tar.gz|https://github.com/meneguzzi/vid.stab/archive/refs/heads/sse2neon.tar.gz|g" ./build-ffmpeg || true)' \
-    && sed -i "s|netactuate|onboardcloud|g" ./build-ffmpeg \
-    && sed -i "s|netcologne|onboardcloud|g" ./build-ffmpeg \
+    # SourceForge giflib/opencore mirrors often return HTML; pin working URLs.
+    && sed -i 's|download "https://netcologne.dl.sourceforge.net/project/giflib/giflib-5.2.1.tar.gz"|download "https://ftp.debian.org/debian/pool/main/g/giflib/giflib_5.2.1.orig.tar.gz" "giflib-5.2.1.tar.gz"|g' ./build-ffmpeg \
+    && sed -i 's|https://netactuate.dl.sourceforge.net/project/opencore-amr/opencore-amr/opencore-amr-0.1.6.tar.gz|https://gigenet.dl.sourceforge.net/project/opencore-amr/opencore-amr/opencore-amr-0.1.6.tar.gz|g' ./build-ffmpeg \
     && sed -i 's/--enable-static/--enable-static --disable-avx512 --disable-avx512icl/g' ./build-ffmpeg \
     && AUTOINSTALL="yes" ./build-ffmpeg --enable-gpl-and-non-free --build --full-static \
     && true
