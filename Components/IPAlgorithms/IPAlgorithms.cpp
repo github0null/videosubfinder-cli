@@ -732,7 +732,15 @@ bool InitCUDADevice()
 	int num = GetCUDADeviceCount();
 	if (num > 0)
 	{
-		res = true;
+		cudaError_t err = cudaSetDevice(0);
+		if (err == cudaSuccess)
+		{
+			res = true;
+		}
+		else
+		{
+			fprintf(stderr, "CUDA cudaSetDevice(0) failed: %s\n", cudaGetErrorString(err));
+		}
 	}
 #endif
 	return res;

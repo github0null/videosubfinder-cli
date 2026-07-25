@@ -4,17 +4,16 @@
 
 int GetCUDADeviceCount()
 {
-	int count;
+	int count = 0;
 	cudaError_t error = cudaGetDeviceCount(&count);
 
 	if (error == cudaSuccess)
 	{
 		return count;
 	}
-	else
-	{
-		return 0;
-	}
+
+	fprintf(stderr, "CUDA GetCUDADeviceCount failed: %s\n", cudaGetErrorString(error));
+	return 0;
 }
 
 int NV12_to_BGR(unsigned char *src_y, unsigned char *src_uv, int src_linesize, unsigned char *dst_data, int w, int h, int W, int H)

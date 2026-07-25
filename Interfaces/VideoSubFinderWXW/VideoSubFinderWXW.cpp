@@ -296,14 +296,14 @@ bool CVideoSubFinderApp::OnInit()
 
 	if (g_pParser->FoundSwitch("uc"))
 	{
-		if (g_use_cuda_gpu == false)
-		{
-			g_use_cuda_gpu = true;
+		g_use_cuda_gpu = true;
+	}
 
-			if (!InitCUDADevice())
-			{
-				g_use_cuda_gpu = false;
-			}
+	if (g_use_cuda_gpu)
+	{
+		if (!InitCUDADevice())
+		{
+			g_use_cuda_gpu = false;
 		}
 	}
 
