@@ -16,6 +16,24 @@ int GetCUDADeviceCount()
 	return 0;
 }
 
+bool InitCUDARuntime()
+{
+	int num = GetCUDADeviceCount();
+	if (num <= 0)
+	{
+		return false;
+	}
+
+	cudaError_t err = cudaSetDevice(0);
+	if (err != cudaSuccess)
+	{
+		fprintf(stderr, "CUDA cudaSetDevice(0) failed: %s\n", cudaGetErrorString(err));
+		return false;
+	}
+
+	return true;
+}
+
 int NV12_to_BGR(unsigned char *src_y, unsigned char *src_uv, int src_linesize, unsigned char *dst_data, int w, int h, int W, int H)
 {
 	NppStatus err;	

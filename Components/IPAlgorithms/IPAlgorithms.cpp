@@ -24,6 +24,7 @@
 #include <algorithm>
 #ifdef USE_CUDA
 #include "cuda_kernels.h"
+#include <cuda_runtime.h>
 #endif
 
 using namespace std;
