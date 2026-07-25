@@ -64,7 +64,7 @@ else()
 		${CUDA_LINK_DIRS}
 	)
 
-	# Prefer a static TBB archive when present (CUDA portable builds).
+	# Prefer a static TBB archive when present (cpu-static installs matching oneTBB).
 	set(_VSF_TBB_LIB "tbb")
 	if(EXISTS "/usr/local/lib/libtbb.a")
 		set(_VSF_TBB_LIB "/usr/local/lib/libtbb.a")

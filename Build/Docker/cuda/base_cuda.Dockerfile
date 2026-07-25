@@ -52,17 +52,6 @@ RUN rm -f /etc/apt/apt.conf.d/docker-clean \
 
 RUN mkdir -p /tmp/work
 
-# Static oneTBB so the CUDA CLI does not need libtbb.so.12 on the host.
-RUN cd /tmp/work \
-    && git clone https://github.com/oneapi-src/oneTBB.git -b v2020.3.3 --depth=1 \
-    && cd oneTBB \
-    && make tbb_build_prefix=BUILDPREFIX extra_inc=big_iron.inc \
-        CXXFLAGS="${CXXFLAGS}" CFLAGS="${CFLAGS}" \
-    && cp -f ./build/BUILDPREFIX_release/libtbb.a /usr/local/lib/ \
-    && cp -f ./build/BUILDPREFIX_release/libtbbmalloc.a /usr/local/lib/ \
-    && cp -rf ./include/tbb /usr/local/include/ \
-    && rm -rf /tmp/work/oneTBB
-
 RUN cd /tmp/work \
     && git clone https://github.com/wxWidgets/wxWidgets.git --branch v3.2.2.1 --depth=1 --recurse-submodules -j8 \
     && cd wxWidgets/ \
@@ -73,7 +62,8 @@ RUN cd /tmp/work \
     && make install \
     && rm -rf /tmp/work/wxWidgets
 
-# OpenCV: SSE4.2 baseline + dispatch up to AVX2 (no AVX-512).
+# OpenCV uses Debian's libtbb (oneTBB). Do NOT install an older oneTBB into
+# /usr/local — mismatched headers vs libtbb.so.12 break the opencv_core link.
 RUN cd /tmp/work \
     && git clone https://github.com/opencv/opencv.git -b 4.8.0 --depth=1 \
     && cd opencv \
