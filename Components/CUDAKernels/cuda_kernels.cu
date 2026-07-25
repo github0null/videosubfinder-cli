@@ -36,8 +36,8 @@ bool InitCUDARuntime()
 
 int NV12_to_BGR(unsigned char *src_y, unsigned char *src_uv, int src_linesize, unsigned char *dst_data, int w, int h, int W, int H)
 {
-	NppStatus err;	
-	int nSrcPitchCUDA, res = 0;
+	NppStatus err;
+	int res = 0;
 
 	Npp8u* device_nv12[2] = { NULL, NULL };
 	Npp8u* device_BGR = NULL;

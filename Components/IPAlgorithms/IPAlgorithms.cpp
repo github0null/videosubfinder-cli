@@ -24,7 +24,6 @@
 #include <algorithm>
 #ifdef USE_CUDA
 #include "cuda_kernels.h"
-#include <cuda_runtime.h>
 #endif
 
 using namespace std;
@@ -728,23 +727,11 @@ int GetBGRColor(ColorName cn)
 
 bool InitCUDADevice()
 {
-	bool res = false;
 #ifdef USE_CUDA
-	int num = GetCUDADeviceCount();
-	if (num > 0)
-	{
-		cudaError_t err = cudaSetDevice(0);
-		if (err == cudaSuccess)
-		{
-			res = true;
-		}
-		else
-		{
-			fprintf(stderr, "CUDA cudaSetDevice(0) failed: %s\n", cudaGetErrorString(err));
-		}
-	}
+	return InitCUDARuntime();
+#else
+	return false;
 #endif
-	return res;
 }
 
 inline u8 GetClusterColor(int clusterCount, int cluster_id)

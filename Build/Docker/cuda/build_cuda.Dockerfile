@@ -33,7 +33,25 @@ RUN set -eux; \
         -DCMAKE_CXX_FLAGS="${CXXFLAGS}" \
         -DCMAKE_EXE_LINKER_FLAGS="-Wl,-rpath,\$ORIGIN -L${CUDA_DIR}/lib64 -L${CUDA_DIR}/targets/x86_64-linux/lib" \
         ..; \
-    cmake --build . --config Release -j "$(nproc)"; \
+    # Guardrail: CUDA toolkit headers/APIs belong in Components/CUDAKernels/*.cu only.
+    # CXX targets are not given CUDA include paths, so accidental includes break the build.
+    if grep -RInE --include='*.cpp' --include='*.h' --include='*.hpp' \
+         '#include[[:space:]]*[<"](cuda_runtime|cuda\.h|nppi|nppc|driver_types)' \
+         Components/IPAlgorithms Components/FFMPEGVideo Components/OCVVideo Interfaces; then \
+      echo "ERROR: CUDA toolkit headers must stay in Components/CUDAKernels/*.cu" >&2; \
+      exit 1; \
+    fi; \
+    if grep -RInE --include='*.cpp' --include='*.h' --include='*.hpp' \
+         '\bcuda(SetDevice|Malloc|Free|Memcpy|GetErrorString)[[:space:]]*\(' \
+         Components/IPAlgorithms Components/FFMPEGVideo Components/OCVVideo Interfaces; then \
+      echo "ERROR: CUDA runtime APIs must stay in Components/CUDAKernels/*.cu" >&2; \
+      exit 1; \
+    fi; \
+    if ! cmake --build . --config Release -j "$(nproc)"; then \
+      echo "Parallel build failed; re-running -j1 to surface the real error" >&2; \
+      cmake --build . --config Release -j 1; \
+      exit 1; \
+    fi; \
     cp -f ./Interfaces/VideoSubFinderCli/VideoSubFinderCli /tmp/work/VideoSubFinderCli; \
     rm -rf /tmp/work/videosubfinder-src; \
     test -x /tmp/work/VideoSubFinderCli; \
