@@ -38,10 +38,32 @@ RUN rm -f /etc/apt/apt.conf.d/docker-clean \
     && rm -rf /usr/local/cuda \
     && ln -s "$CUDA_DIR" /usr/local/cuda \
     && ls -la /usr/local/cuda/bin/nvcc \
+    && (ls /usr/local/cuda/lib64/libcudart_static.a \
+          /usr/local/cuda/lib64/libnppicc_static.a \
+          /usr/local/cuda/lib64/libnppig_static.a \
+          /usr/local/cuda/lib64/libnppc_static.a \
+          /usr/local/cuda/lib64/libculibos.a \
+        || ls /usr/local/cuda/targets/x86_64-linux/lib/libcudart_static.a \
+              /usr/local/cuda/targets/x86_64-linux/lib/libnppicc_static.a \
+              /usr/local/cuda/targets/x86_64-linux/lib/libnppig_static.a \
+              /usr/local/cuda/targets/x86_64-linux/lib/libnppc_static.a \
+              /usr/local/cuda/targets/x86_64-linux/lib/libculibos.a) \
     && rm -rf /var/lib/apt/lists/*
 
-RUN mkdir -p /tmp/work \
-    && cd /tmp/work \
+RUN mkdir -p /tmp/work
+
+# Static oneTBB so the CUDA CLI does not need libtbb.so.12 on the host.
+RUN cd /tmp/work \
+    && git clone https://github.com/oneapi-src/oneTBB.git -b v2020.3.3 --depth=1 \
+    && cd oneTBB \
+    && make tbb_build_prefix=BUILDPREFIX extra_inc=big_iron.inc \
+        CXXFLAGS="${CXXFLAGS}" CFLAGS="${CFLAGS}" \
+    && cp -f ./build/BUILDPREFIX_release/libtbb.a /usr/local/lib/ \
+    && cp -f ./build/BUILDPREFIX_release/libtbbmalloc.a /usr/local/lib/ \
+    && cp -rf ./include/tbb /usr/local/include/ \
+    && rm -rf /tmp/work/oneTBB
+
+RUN cd /tmp/work \
     && git clone https://github.com/wxWidgets/wxWidgets.git --branch v3.2.2.1 --depth=1 --recurse-submodules -j8 \
     && cd wxWidgets/ \
     && mkdir buildgtk \

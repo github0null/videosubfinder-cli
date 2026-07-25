@@ -64,6 +64,12 @@ else()
 		${CUDA_LINK_DIRS}
 	)
 
+	# Prefer a static TBB archive when present (CUDA portable builds).
+	set(_VSF_TBB_LIB "tbb")
+	if(EXISTS "/usr/local/lib/libtbb.a")
+		set(_VSF_TBB_LIB "/usr/local/lib/libtbb.a")
+	endif()
+
 	target_link_libraries(VideoSubFinderCli PUBLIC
 		IPAlgorithms
 		OCVVideo
@@ -76,13 +82,16 @@ else()
         avutil
         swscale
         avfilter
-        tbb
+        ${_VSF_TBB_LIB}
     )
 
     if (BUILD_FULL_STATIC)
     	message("BUILD_FULL_STATIC is ON")
+		# Static archives need --start-group/--end-group so interdependent
+		# libs (e.g. vorbis -> ogg, theora -> ogg) resolve regardless of order.
 		target_link_libraries(VideoSubFinderCli PUBLIC
 			"-static"
+			"-Wl,--start-group"
 			"SDL2"
 			"SDL2_test"
 			"SDL2main"
@@ -95,6 +104,12 @@ else()
 			"gif"
 			"ltdl"
 			"mp3lame"
+			"vorbisfile"
+			"vorbisenc"
+			"vorbis"
+			"theoraenc"
+			"theoradec"
+			"theora"
 			"ogg"
 			"opencore-amrnb"
 			"opencore-amrwb"
@@ -105,15 +120,9 @@ else()
 			"srt"
 			"ssl"
 			"swresample"
-			"theora"
-			"theoradec"
-			"theoraenc"
 			"tiff"
 			"tiffxx"
 			"vidstab"
-			"vorbis"
-			"vorbisenc"
-			"vorbisfile"
 			"vpx"
 			"webp"
 			"webpdecoder"
@@ -124,7 +133,8 @@ else()
 			"xvidcore"
 			"yasm"
 			"z"
-			"zimg"	
+			"zimg"
+			"-Wl,--end-group"
 		)
 	endif(BUILD_FULL_STATIC)
 

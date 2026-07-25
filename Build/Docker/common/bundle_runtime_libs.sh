@@ -52,7 +52,7 @@ collect_deps() {
       */libgcc_s.so.*) continue ;;
     esac
     case "$lib" in
-      */libcuda.so*) continue ;;
+      */libcuda.so*) continue ;;   # NVIDIA driver; provided by host
       */libnvidia-*.so*) continue ;;
     esac
     echo "$lib"
