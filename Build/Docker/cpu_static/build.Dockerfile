@@ -1,5 +1,5 @@
 ARG BASE_IMAGE=videosubfinder-build:base-cpu-static
-FROM ${BASE_IMAGE} as builder
+FROM ${BASE_IMAGE} AS builder
 
 ENV CFLAGS="-O3 -march=broadwell -mtune=broadwell" \
     CXXFLAGS="-O3 -march=broadwell -mtune=broadwell" \
@@ -20,16 +20,10 @@ RUN cd /tmp/work/videosubfinder-src \
             -DCMAKE_C_FLAGS="${CFLAGS}" \
             -DCMAKE_CXX_FLAGS="${CXXFLAGS}" \
             -DFFMPEG_INCLUDE_DIRS=$(readlink -f /tmp/work/ffmpeg-build-script/workspace/include) \
-            -DCMAKE_EXE_LINKER_FLAGS="-L/usr/lib/x86_64-linux-gnu -L/tmp/work/ffmpeg-build-script/workspace/lib -static-libgcc -static-libstdc++" \
+            -DCMAKE_EXE_LINKER_FLAGS="-L/usr/lib/x86_64-linux-gnu -L/tmp/work/ffmpeg-build-script/workspace/lib -L/usr/local/lib -static-libgcc -static-libstdc++" \
             .. \
-    && cmake --build . --config Release -j $(nproc) \
+    && cmake --build . --config Release -j "$(nproc)" \
     && cp ./Interfaces/VideoSubFinderCli/VideoSubFinderCli /tmp/work/ \
     && chmod +x /tmp/work/VideoSubFinderCli /tmp/work/VideoSubFinderCli.run \
-    && rm -rf /tmp/work/videosubfinder-src
-
-RUN --mount=type=cache,target=/var/cache/apt \
-    apt-get update \
-    && apt-get install -y upx-ucl \
-    && cd /tmp/work \
-    && upx -f -o ./VideoSubFinderCli.upx ./VideoSubFinderCli \
-    && true
+    && rm -rf /tmp/work/videosubfinder-src \
+    && test -x /tmp/work/VideoSubFinderCli

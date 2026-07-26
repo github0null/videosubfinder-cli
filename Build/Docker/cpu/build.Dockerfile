@@ -21,12 +21,14 @@ RUN cd /tmp/work/videosubfinder-src \
         -DCMAKE_EXE_LINKER_FLAGS="-Wl,-rpath,\$ORIGIN" \
         .. \
     && cmake --build . --config Release -j $(nproc) \
-    && cp ./Interfaces/VideoSubFinderCli/VideoSubFinderCli /tmp/work/VideoSubFinderCli.bin \
-    && rm -rf /tmp/work/videosubfinder-src
+    && cp -f ./Interfaces/VideoSubFinderCli/VideoSubFinderCli /tmp/work/VideoSubFinderCli \
+    && rm -rf /tmp/work/videosubfinder-src \
+    && test -x /tmp/work/VideoSubFinderCli
 
 # Bundle OpenCV / wx / ffmpeg / tbb so Debian 12 hosts need no extra packages.
-RUN bash /usr/local/bin/bundle_runtime_libs.sh /tmp/work /tmp/work/VideoSubFinderCli.bin \
+RUN set -eux; \
+    bash /usr/local/bin/bundle_runtime_libs.sh /tmp/work /tmp/work/VideoSubFinderCli \
       "/usr/local/lib/libwx_baseu-*.so.*" \
-      "/usr/local/lib/libopencv_*.so.*" \
-    && mv -f /tmp/work/VideoSubFinderCli.bin /tmp/work/VideoSubFinderCli \
-    && chmod +x /tmp/work/VideoSubFinderCli /tmp/work/VideoSubFinderCli.run
+      "/usr/local/lib/libopencv_*.so.*"; \
+    chmod +x /tmp/work/VideoSubFinderCli /tmp/work/VideoSubFinderCli.run; \
+    test -x /tmp/work/VideoSubFinderCli

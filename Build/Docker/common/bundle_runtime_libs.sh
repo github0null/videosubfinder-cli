@@ -1,7 +1,7 @@
 #!/bin/bash
 # Copy non-glibc runtime shared libraries next to the binary so the
-# package can run on Debian 12 / newer hosts without installing Ubuntu
-# build-time packages (ffmpeg, tbb, ...).
+# package can run on Debian 12 / newer hosts without installing build-time
+# packages (ffmpeg, tbb, ...).
 set -euo pipefail
 
 TARGET_DIR="${1:?target dir}"
@@ -9,7 +9,20 @@ BIN="${2:?binary path}"
 shift 2
 
 mkdir -p "$TARGET_DIR"
-cp -f "$BIN" "$TARGET_DIR/$(basename "$BIN")"
+
+# Resolve absolute paths so we never try to copy a file onto itself.
+BIN_ABS="$(readlink -f "$BIN")"
+BIN_DEST="$TARGET_DIR/$(basename "$BIN_ABS")"
+BIN_DEST_ABS="$(mkdir -p "$TARGET_DIR" && readlink -f "$TARGET_DIR")/$(basename "$BIN_ABS")"
+
+if [ ! -f "$BIN_ABS" ]; then
+  echo "ERROR: binary not found: $BIN" >&2
+  exit 1
+fi
+
+if [ "$BIN_ABS" != "$BIN_DEST_ABS" ]; then
+  cp -f "$BIN_ABS" "$BIN_DEST_ABS"
+fi
 
 # Optional extra libs (absolute paths or globs)
 for extra in "$@"; do
@@ -36,11 +49,10 @@ collect_deps() {
       */libresolv.so.*) continue ;;
       */libutil.so.*) continue ;;
       */libnss_*.so.*) continue ;;
-      */libgcc_s.so.*) continue ;;  # usually OK from host; keep if missing later
+      */libgcc_s.so.*) continue ;;
     esac
-    # Skip NVIDIA driver stubs; runtime provides them on CUDA hosts/containers.
     case "$lib" in
-      */libcuda.so*) continue ;;
+      */libcuda.so*) continue ;;   # NVIDIA driver; provided by host
       */libnvidia-*.so*) continue ;;
     esac
     echo "$lib"
@@ -52,6 +64,10 @@ while [ "$copied" -gt 0 ]; do
   copied=0
   for so in "$TARGET_DIR"/*; do
     [ -f "$so" ] || continue
+    # Skip the launcher script and non-ELF files.
+    case "$so" in
+      *.run|*.cfg) continue ;;
+    esac
     while read -r lib; do
       base="$(basename "$lib")"
       if [ ! -e "$TARGET_DIR/$base" ]; then

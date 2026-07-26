@@ -135,7 +135,7 @@ bool g_wxImageHandlersInitialized = false;
 
 bool g_use_ocl = true;
 
-bool g_use_cuda_gpu = true;
+bool g_use_cuda_gpu = false;
 
 wxArrayString g_use_filter_color;
 wxArrayString g_use_outline_filter_color;
@@ -727,15 +727,11 @@ int GetBGRColor(ColorName cn)
 
 bool InitCUDADevice()
 {
-	bool res = false;
 #ifdef USE_CUDA
-	int num = GetCUDADeviceCount();
-	if (num > 0)
-	{
-		res = true;
-	}
+	return InitCUDARuntime();
+#else
+	return false;
 #endif
-	return res;
 }
 
 inline u8 GetClusterColor(int clusterCount, int cluster_id)

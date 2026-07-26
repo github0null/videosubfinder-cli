@@ -110,17 +110,24 @@ bool CVideoSubFinderApp::OnCmdLineParsed(wxCmdLineParser& parser) {
         g_threads = threads;
     }
 
-    if (parser.FoundSwitch("uc"))
-    {
-        if (g_use_cuda_gpu == false)
-        {
-            g_use_cuda_gpu = true;
+    // CLI: CUDA is opt-in via -uc only. Ignore use_cuda_gpu from general.cfg.
+    g_use_cuda_gpu = (parser.FoundSwitch("uc") == wxCMD_SWITCH_ON);
 
-            if (!InitCUDADevice())
-            {
-                g_use_cuda_gpu = false;
-            }
+    if (g_use_cuda_gpu)
+    {
+        if (!InitCUDADevice())
+        {
+            wxLogMessage("ERROR: CUDA GPU requested (-uc) but no usable CUDA device was found. Falling back to CPU.\n");
+            g_use_cuda_gpu = false;
         }
+        else
+        {
+            wxLogMessage("CUDA GPU acceleration enabled (-uc).\n");
+        }
+    }
+    else
+    {
+        wxLogMessage("CUDA GPU acceleration disabled (pass -uc to enable).\n");
     }
     parser.Found("i", &g_InputFileName);
     if (parser.Found("o", &wxStr))
